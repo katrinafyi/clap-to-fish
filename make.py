@@ -18,10 +18,10 @@ from collections import defaultdict
 log = logging.getLogger(__name__)
 
 @dataclass
-class DashOptions:
+class DashOption:
   shorts: list[str]
   longs: list[str]
-  args: list[str]
+  arg: str | None
   choices: list[tuple[str, str]]
   desc: str
 
@@ -29,7 +29,7 @@ class DashOptions:
 class Subcommand:
   cmd: str
   desc: str
-  dashes: list[DashOptions]
+  dashes: list[DashOption]
   subs: list[Subcommand]
   args: list[tuple[str, str]]
 
@@ -41,10 +41,12 @@ def do_dash_option(s: str):
   options = []
   head = lines[0].split(' ')
   for x in head:
-    options.append(x.rstrip(','))
+    options.append(x.rstrip(',.'))
     if not x.endswith(','):
       break
   args = head[len(options):]
+  arg = args[0] if args else None
+  assert len(args) <= 1
 
   rest = textwrap.dedent('\n'.join(lines[1:]))
   desc = rest.split('\n\n')[0].strip()
@@ -62,7 +64,7 @@ def do_dash_option(s: str):
       if opt.endswith(':'): opt = opt[:-1]
       options.append((opt, opt_desc))
 
-  return DashOptions(shorts, longs, args, options, desc)
+  return DashOption(shorts, longs, arg, options, desc)
 
 
 def do_arg(s: str):
@@ -123,21 +125,23 @@ def explore(cmd: list[str]):
   return Subcommand(cmd[-1], '', dashes, subs, args)
 
 reported = set()
-def make_arg(arg: str, arg_suggestions: dict[str, str]):
+def get_suggestion(data: DashOption, arg_suggestions: dict):
+  arg = data.arg
+  if arg is None:
+    return ''
   if arg not in arg_suggestions and arg not in reported:
     log.warning(f'unknown arg string placeholder {arg}')
     reported.add(arg)
 
   if arg in arg_suggestions:
     suggestion = arg_suggestions[arg]
-  else:
+    if not isinstance(suggestion, str):
+      suggestion = suggestion(data)
+  elif arg:
     suggestion = '-a ' + quote(quote(arg))
-
-  if arg.startswith('['):
-    return suggestion
-  elif arg.startswith('<'):
-    return suggestion
-  assert False, 'unhandled arg prefix ' + repr(arg)
+  else:
+    suggestion = ''
+  return suggestion
 
 def suggest(suggestion: str, desc: str | None = None):
   s = f'{quote(suggestion)}'
@@ -148,7 +152,7 @@ def suggest(suggestion: str, desc: str | None = None):
 def suggest_list(l: Iterable[tuple[str,str]]):
   return '-a ' + ''.join(suggest(x, y) for x, y in l)
 
-def make_fish_completion(data: Subcommand, prefix: str, arg_suggestions: dict[str, str] | None = None):
+def make_fish_completion(data: Subcommand, prefix: str, arg_suggestions: dict | None = None):
   arg_suggestions = arg_suggestions or {}
   join = shlex.join
   cmd = prefix + data.cmd
@@ -156,11 +160,10 @@ def make_fish_completion(data: Subcommand, prefix: str, arg_suggestions: dict[st
     shorts = ''.join(join(['-s', a.lstrip('-')]) for a in dash.shorts)
     longs = ''.join(join(['-l', a.lstrip('-')]) for a in dash.longs)
     desc = quote(dash.desc)
-    assert len(dash.args) <= 1
     if dash.choices:
       args = '-r ' + suggest_list(dash.choices)
     else:
-      args = make_arg(dash.args[0], arg_suggestions) if dash.args else ''
+      args = get_suggestion(dash, arg_suggestions)
 
     print(f'complete -c {cmd} -f {shorts} {longs} -d {desc} {args}')
 
@@ -177,31 +180,33 @@ def make_fish_completion(data: Subcommand, prefix: str, arg_suggestions: dict[st
   # print(f'complete -c {cmd} -f -a {quote('(_myfish_complete_subcommand --fcs-set-argv0="git checkout")')}')
 
 def branchless_arg_map():
+  def base_arg_for_difftool_or_move(x: DashOption):
+    if 'difftool' in x.desc:
+      return '-xa "(__fish_complete_path)"'
+    elif 'commit inside a subtree' in x.desc:
+      return "-r -ka '(__fish_git_commits)'"
+    assert False, f'unexpected dashoption {x}'
+
   return {
     '<WORKING_DIRECTORY>': '-ra "(__fish_complete_directories)"',
-# '<BASE>'
-# '<OUTPUT>'
+    '<BASE>': base_arg_for_difftool_or_move,
+    '<OUTPUT>': '-xa "(__fish_complete_path)"',
     '<MAIN_BRANCH_NAME>': "-r -ka '(__fish_git_branches)'",
+    '<BRANCH_NAME>': "-r -ka '(__fish_git_branches)'",
     '<SOURCE>': "-xa '(__fish_git_commits)'",
     '<EXACT>': "-xa '(__fish_git_commits)'",
-      '<DEST>': "-xa '(__fish_git_commits)'",
+    '<DEST>': "-xa '(__fish_git_commits)'",
     '<MESSAGES>': '-r',
-# '<CREATE>'
-# '<COMMIT_TO_FIXUP>'
-# '<EVENT_ID>'
-# '<FORGE_KIND>'
-# '<MESSAGE>'
-# '<NUM_JOBS>'
-# '<EXECUTION_STRATEGY>'
-# '<BRANCH_NAME>'
-# '<EXEC>'
-# '<COMMAND>'
-# '<STRATEGY>'
-# '<SEARCH>'
-# '<JOBS>'
-# '<GIT_EXECUTABLE>'
-#
+    '<CREATE>': '-r',
+    '<COMMIT_TO_FIXUP>': "-xa '(__fish_git_commits)'",
+    '<EVENT_ID>': '-r',  # XXX: smartlog "event id"???
+    '<MESSAGE>': '-r',
+    '<NUM_JOBS>': '-r',
 
+    '<EXEC>': '-r',
+    '<COMMAND>': '-r',
+    '<JOBS>': '-r',
+    '<GIT_EXECUTABLE>': '-xa "(__fish_complete_path)"',
   }
 
 if __name__ == '__main__':
