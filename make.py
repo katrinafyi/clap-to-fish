@@ -169,7 +169,11 @@ def make_fish_completion(data: Subcommand, prefix: str, arg_suggestions: dict | 
 
   if data.subs:
     allsubs = quote(join([x.cmd for x in data.subs]))
-    print(f'complete -c {cmd} -f --condition "not __fish_seen_subcommand_from "{allsubs} {suggest_list((x.cmd, x.desc) for x in data.subs)}')
+    if data.cmd == 'git':
+      condition = '__fish_git_needs_command'
+    else:
+      condition = f'"not __fish_seen_subcommand_from "{allsubs}'
+    print(f'complete -c {cmd} -f --condition {condition} {suggest_list((x.cmd, x.desc) for x in data.subs)}')
     for sub in data.subs:
       print(f'''complete -c {cmd} -f --condition "__fish_seen_subcommand_from {sub.cmd}" -a '(_myfish_complete_subcommand --fcs-set-argv0="{cmd}__{sub.cmd}")' ''')
 
@@ -246,13 +250,18 @@ def branchless_arg_map():
     '[REVSET]': "-kra '(__fish_git_commits; __fish_git_branches)'",
   }
 
+
 if __name__ == '__main__':
   root = explore(['git-branchless'])
+  sl = replace(next(x for x in root.subs if x.cmd == 'smartlog'), cmd='sl')
+  root.subs.append(sl)
+
   # pprint(cmds, width=140)
   make_fish_completion(root, '', branchless_arg_map())
 
   # for a number of git-branchless, these are aliased to the top-level git. duplicate the thingies
   aliased = ['amend', 'hide', 'move', 'next', 'prev', 'query', 'record', 'restack', 'reword', 'sl', 'smartlog', 'submit', 'sw', 'sync', 'test', 'undo', 'unhide']
-  gitroot = replace(root, cmd='git', subs=[x for x in root.subs if x.cmd in aliased])
+  gitsubs = [x for x in root.subs if x.cmd in aliased]
+  gitroot = replace(root, cmd='git', subs=gitsubs)
   make_fish_completion(gitroot, '', branchless_arg_map())
 
