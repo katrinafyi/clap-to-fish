@@ -247,11 +247,14 @@ def branchless_arg_map():
     '<LEFT> <RIGHT>': '-xa "(__fish_complete_path)"',
     '[REVSETS]...': "-kra '(__fish_git_commits)'",
     '<REVSET>': "-r", # XXX: used for 'query', where advanced expressions are expected
-    '[REVSET]': "-kra '(__fish_git_commits; __fish_git_branches)'",
+    '[REVSET]': "-kra '(__fish_git_branches; __fish_git_commits)'",  # XXX: used for smartlog argument
   }
 
 
 if __name__ == '__main__':
+  # we need to instantiate the git completions since we use their methods
+  print('complete -C"git " >/dev/null')
+
   root = explore(['git-branchless'])
   sl = replace(next(x for x in root.subs if x.cmd == 'smartlog'), cmd='sl')
   root.subs.append(sl)

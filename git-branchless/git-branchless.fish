@@ -1,3 +1,4 @@
+complete -C"git " >/dev/null
 complete -c git-branchless -f -s C  -d 'Change to the given directory before executing the rest of the program. (The option is called `-C` for symmetry with Git.)' -ra "(__fish_complete_directories)"
 complete -c git-branchless -f  -l color -d 'Flag to force enable or disable terminal colors' -r -a 'auto'"'"'	Automatically determine whether to display colors from the terminal and environment variables. This is the default behavior'"'"'
 ''always'"'"'	Always display terminal colors'"'"'
@@ -5,7 +6,7 @@ complete -c git-branchless -f  -l color -d 'Flag to force enable or disable term
 '
 complete -c git-branchless -f -s h -l help -d 'Print help (see a summary with '"'"'-h'"'"')' 
 complete -c git-branchless -f -s V -l version -d 'Print version' 
-complete -c git-branchless -f --condition "not __fish_seen_subcommand_from "'amend bug-report difftool gc hide init install-man-pages move next prev query repair restack record reword smartlog submit switch sync test undo unhide wrap help' -a 'amend'"'"'	Amend the current HEAD commit'"'"'
+complete -c git-branchless -f --condition "not __fish_seen_subcommand_from "'amend bug-report difftool gc hide init install-man-pages move next prev query repair restack record reword smartlog submit switch sync test undo unhide wrap help sl' -a 'amend'"'"'	Amend the current HEAD commit'"'"'
 ''bug-report'"'"'	Gather information about recent operations to upload as part of a bug report'"'"'
 ''difftool'"'"'	Use the partial commit selector UI as a Git-compatible difftool; see git-difftool(1) for more information on Git difftools'"'"'
 ''gc'"'"'	Run internal garbage collection'"'"'
@@ -29,6 +30,7 @@ complete -c git-branchless -f --condition "not __fish_seen_subcommand_from "'ame
 ''unhide'"'"'	Unhide previously-hidden commits from the smartlog'"'"'
 ''wrap'"'"'	Wrap a Git command inside a branchless transaction'"'"'
 ''help'"'"'	Print this message or the help of the given subcommand(s)'"'"'
+''sl'"'"'	`smartlog` command'"'"'
 '
 complete -c git-branchless -f --condition "__fish_seen_subcommand_from amend" -a '(_myfish_complete_subcommand --fcs-set-argv0="git-branchless__amend")' 
 complete -c git-branchless -f --condition "__fish_seen_subcommand_from bug-report" -a '(_myfish_complete_subcommand --fcs-set-argv0="git-branchless__bug-report")' 
@@ -54,6 +56,7 @@ complete -c git-branchless -f --condition "__fish_seen_subcommand_from undo" -a 
 complete -c git-branchless -f --condition "__fish_seen_subcommand_from unhide" -a '(_myfish_complete_subcommand --fcs-set-argv0="git-branchless__unhide")' 
 complete -c git-branchless -f --condition "__fish_seen_subcommand_from wrap" -a '(_myfish_complete_subcommand --fcs-set-argv0="git-branchless__wrap")' 
 complete -c git-branchless -f --condition "__fish_seen_subcommand_from help" -a '(_myfish_complete_subcommand --fcs-set-argv0="git-branchless__help")' 
+complete -c git-branchless -f --condition "__fish_seen_subcommand_from sl" -a '(_myfish_complete_subcommand --fcs-set-argv0="git-branchless__sl")' 
 
 complete -c git-branchless__amend -f -s C  -d 'Change to the given directory before executing the rest of the program. (The option is called `-C` for symmetry with Git.)' -ra "(__fish_complete_directories)"
 complete -c git-branchless__amend -f -s f -l force-rewrite -d 'Force moving public commits, even though other people may have access to those commits' 
@@ -247,7 +250,7 @@ complete -c git-branchless__smartlog -f  -l reverse -d 'Print the smartlog in th
 complete -c git-branchless__smartlog -f  -l exact -d 'Don'"'"'t automatically add HEAD and the main branch to the list of commits to present. They will still be added if included in the revset' 
 complete -c git-branchless__smartlog -f  -l hidden -d 'Include hidden commits in the results of evaluating revset expressions' 
 complete -c git-branchless__smartlog -f -s h -l help -d 'Print help (see a summary with '"'"'-h'"'"')' 
-complete -c git-branchless__smartlog -f -kra '(__fish_git_commits; __fish_git_branches)'
+complete -c git-branchless__smartlog -f -kra '(__fish_git_branches; __fish_git_commits)'
 
 complete -c git-branchless__submit -f -s C  -d 'Change to the given directory before executing the rest of the program. (The option is called `-C` for symmetry with Git.)' -ra "(__fish_complete_directories)"
 complete -c git-branchless__submit -f  -l hidden -d 'Include hidden commits in the results of evaluating revset expressions' 
@@ -325,7 +328,7 @@ complete -c git-branchless__test__clean -f  -l color -d 'Flag to force enable or
 ''never'"'"'	Never display terminal colors'"'"'
 '
 complete -c git-branchless__test__clean -f -s h -l help -d 'Print help (see a summary with '"'"'-h'"'"')' 
-complete -c git-branchless__test__clean -f -kra '(__fish_git_commits; __fish_git_branches)'
+complete -c git-branchless__test__clean -f -kra '(__fish_git_branches; __fish_git_commits)'
 
 complete -c git-branchless__test__run -f -s C  -d 'Change to the given directory before executing the rest of the program. (The option is called `-C` for symmetry with Git.)' -ra "(__fish_complete_directories)"
 complete -c git-branchless__test__run -f -s x -l exec -d 'An ad-hoc command to execute on each commit' -r
@@ -348,7 +351,7 @@ complete -c git-branchless__test__run -f  -l no-cache -d 'Don'"'"'t read or writ
 complete -c git-branchless__test__run -f -s i -l interactive -d 'Run the test command in the foreground rather than the background so that the user can interact with it' 
 complete -c git-branchless__test__run -f -s j -l jobs -d 'How many jobs to execute in parallel. The value `0` indicates to use all CPUs' -r
 complete -c git-branchless__test__run -f -s h -l help -d 'Print help (see a summary with '"'"'-h'"'"')' 
-complete -c git-branchless__test__run -f -kra '(__fish_git_commits; __fish_git_branches)'
+complete -c git-branchless__test__run -f -kra '(__fish_git_branches; __fish_git_commits)'
 
 complete -c git-branchless__test__show -f -s C  -d 'Change to the given directory before executing the rest of the program. (The option is called `-C` for symmetry with Git.)' -ra "(__fish_complete_directories)"
 complete -c git-branchless__test__show -f -s x -l exec -d 'An ad-hoc command to execute on each commit' -r
@@ -360,7 +363,7 @@ complete -c git-branchless__test__show -f  -l color -d 'Flag to force enable or 
 complete -c git-branchless__test__show -f  -l hidden -d 'Include hidden commits in the results of evaluating revset expressions' 
 complete -c git-branchless__test__show -f -s v -l verbose -d 'Show the test output as well' 
 complete -c git-branchless__test__show -f -s h -l help -d 'Print help (see a summary with '"'"'-h'"'"')' 
-complete -c git-branchless__test__show -f -kra '(__fish_git_commits; __fish_git_branches)'
+complete -c git-branchless__test__show -f -kra '(__fish_git_branches; __fish_git_commits)'
 
 complete -c git-branchless__test__fix -f -s C  -d 'Change to the given directory before executing the rest of the program. (The option is called `-C` for symmetry with Git.)' -ra "(__fish_complete_directories)"
 complete -c git-branchless__test__fix -f -s x -l exec -d 'An ad-hoc command to execute on each commit' -r
@@ -385,7 +388,7 @@ complete -c git-branchless__test__fix -f -s m -l merge -d 'Attempt to resolve me
 complete -c git-branchless__test__fix -f  -l debug-dump-rebase-constraints -d 'Debugging option. Print the constraints used to create the rebase plan before executing it' 
 complete -c git-branchless__test__fix -f  -l debug-dump-rebase-plan -d 'Debugging option. Print the rebase plan that will be executed before executing it' 
 complete -c git-branchless__test__fix -f -s h -l help -d 'Print help (see a summary with '"'"'-h'"'"')' 
-complete -c git-branchless__test__fix -f -kra '(__fish_git_commits; __fish_git_branches)'
+complete -c git-branchless__test__fix -f -kra '(__fish_git_branches; __fish_git_commits)'
 
 
 complete -c git-branchless__undo -f -s C  -d 'Change to the given directory before executing the rest of the program. (The option is called `-C` for symmetry with Git.)' -ra "(__fish_complete_directories)"
@@ -415,6 +418,18 @@ complete -c git-branchless__wrap -f  -l color -d 'Flag to force enable or disabl
 '
 complete -c git-branchless__wrap -f -s h -l help -d 'Print help (see a summary with '"'"'-h'"'"')' 
 
+
+complete -c git-branchless__sl -f -s C  -d 'Change to the given directory before executing the rest of the program. (The option is called `-C` for symmetry with Git.)' -ra "(__fish_complete_directories)"
+complete -c git-branchless__sl -f  -l event-id -d 'The point in time at which to show the smartlog. If not provided, renders the smartlog as of the current time. If negative, is treated as an offset from the current event' -r
+complete -c git-branchless__sl -f  -l color -d 'Flag to force enable or disable terminal colors' -r -a 'auto'"'"'	Automatically determine whether to display colors from the terminal and environment variables. This is the default behavior'"'"'
+''always'"'"'	Always display terminal colors'"'"'
+''never'"'"'	Never display terminal colors'"'"'
+'
+complete -c git-branchless__sl -f  -l reverse -d 'Print the smartlog in the opposite of the usual order, with the latest commits first' 
+complete -c git-branchless__sl -f  -l exact -d 'Don'"'"'t automatically add HEAD and the main branch to the list of commits to present. They will still be added if included in the revset' 
+complete -c git-branchless__sl -f  -l hidden -d 'Include hidden commits in the results of evaluating revset expressions' 
+complete -c git-branchless__sl -f -s h -l help -d 'Print help (see a summary with '"'"'-h'"'"')' 
+complete -c git-branchless__sl -f -kra '(__fish_git_branches; __fish_git_commits)'
 complete -c git -f -s C  -d 'Change to the given directory before executing the rest of the program. (The option is called `-C` for symmetry with Git.)' -ra "(__fish_complete_directories)"
 complete -c git -f  -l color -d 'Flag to force enable or disable terminal colors' -r -a 'auto'"'"'	Automatically determine whether to display colors from the terminal and environment variables. This is the default behavior'"'"'
 ''always'"'"'	Always display terminal colors'"'"'
@@ -422,7 +437,7 @@ complete -c git -f  -l color -d 'Flag to force enable or disable terminal colors
 '
 complete -c git -f -s h -l help -d 'Print help (see a summary with '"'"'-h'"'"')' 
 complete -c git -f -s V -l version -d 'Print version' 
-complete -c git -f --condition "not __fish_seen_subcommand_from "'amend hide move next prev query restack record reword smartlog submit sync test undo unhide' -a 'amend'"'"'	Amend the current HEAD commit'"'"'
+complete -c git -f --condition __fish_git_needs_command -a 'amend'"'"'	Amend the current HEAD commit'"'"'
 ''hide'"'"'	Hide the provided commits from the smartlog'"'"'
 ''move'"'"'	Move a subtree of commits from one location to another'"'"'
 ''next'"'"'	Move to a later commit in the current stack'"'"'
@@ -437,6 +452,7 @@ complete -c git -f --condition "not __fish_seen_subcommand_from "'amend hide mov
 ''test'"'"'	Run a command on each commit in a given set and aggregate the results'"'"'
 ''undo'"'"'	Browse or return to a previous state of the repository'"'"'
 ''unhide'"'"'	Unhide previously-hidden commits from the smartlog'"'"'
+''sl'"'"'	`smartlog` command'"'"'
 '
 complete -c git -f --condition "__fish_seen_subcommand_from amend" -a '(_myfish_complete_subcommand --fcs-set-argv0="git__amend")' 
 complete -c git -f --condition "__fish_seen_subcommand_from hide" -a '(_myfish_complete_subcommand --fcs-set-argv0="git__hide")' 
@@ -453,6 +469,7 @@ complete -c git -f --condition "__fish_seen_subcommand_from sync" -a '(_myfish_c
 complete -c git -f --condition "__fish_seen_subcommand_from test" -a '(_myfish_complete_subcommand --fcs-set-argv0="git__test")' 
 complete -c git -f --condition "__fish_seen_subcommand_from undo" -a '(_myfish_complete_subcommand --fcs-set-argv0="git__undo")' 
 complete -c git -f --condition "__fish_seen_subcommand_from unhide" -a '(_myfish_complete_subcommand --fcs-set-argv0="git__unhide")' 
+complete -c git -f --condition "__fish_seen_subcommand_from sl" -a '(_myfish_complete_subcommand --fcs-set-argv0="git__sl")' 
 
 complete -c git__amend -f -s C  -d 'Change to the given directory before executing the rest of the program. (The option is called `-C` for symmetry with Git.)' -ra "(__fish_complete_directories)"
 complete -c git__amend -f -s f -l force-rewrite -d 'Force moving public commits, even though other people may have access to those commits' 
@@ -594,7 +611,7 @@ complete -c git__smartlog -f  -l reverse -d 'Print the smartlog in the opposite 
 complete -c git__smartlog -f  -l exact -d 'Don'"'"'t automatically add HEAD and the main branch to the list of commits to present. They will still be added if included in the revset' 
 complete -c git__smartlog -f  -l hidden -d 'Include hidden commits in the results of evaluating revset expressions' 
 complete -c git__smartlog -f -s h -l help -d 'Print help (see a summary with '"'"'-h'"'"')' 
-complete -c git__smartlog -f -kra '(__fish_git_commits; __fish_git_branches)'
+complete -c git__smartlog -f -kra '(__fish_git_branches; __fish_git_commits)'
 
 complete -c git__submit -f -s C  -d 'Change to the given directory before executing the rest of the program. (The option is called `-C` for symmetry with Git.)' -ra "(__fish_complete_directories)"
 complete -c git__submit -f  -l hidden -d 'Include hidden commits in the results of evaluating revset expressions' 
@@ -659,7 +676,7 @@ complete -c git__test__clean -f  -l color -d 'Flag to force enable or disable te
 ''never'"'"'	Never display terminal colors'"'"'
 '
 complete -c git__test__clean -f -s h -l help -d 'Print help (see a summary with '"'"'-h'"'"')' 
-complete -c git__test__clean -f -kra '(__fish_git_commits; __fish_git_branches)'
+complete -c git__test__clean -f -kra '(__fish_git_branches; __fish_git_commits)'
 
 complete -c git__test__run -f -s C  -d 'Change to the given directory before executing the rest of the program. (The option is called `-C` for symmetry with Git.)' -ra "(__fish_complete_directories)"
 complete -c git__test__run -f -s x -l exec -d 'An ad-hoc command to execute on each commit' -r
@@ -682,7 +699,7 @@ complete -c git__test__run -f  -l no-cache -d 'Don'"'"'t read or write to the ca
 complete -c git__test__run -f -s i -l interactive -d 'Run the test command in the foreground rather than the background so that the user can interact with it' 
 complete -c git__test__run -f -s j -l jobs -d 'How many jobs to execute in parallel. The value `0` indicates to use all CPUs' -r
 complete -c git__test__run -f -s h -l help -d 'Print help (see a summary with '"'"'-h'"'"')' 
-complete -c git__test__run -f -kra '(__fish_git_commits; __fish_git_branches)'
+complete -c git__test__run -f -kra '(__fish_git_branches; __fish_git_commits)'
 
 complete -c git__test__show -f -s C  -d 'Change to the given directory before executing the rest of the program. (The option is called `-C` for symmetry with Git.)' -ra "(__fish_complete_directories)"
 complete -c git__test__show -f -s x -l exec -d 'An ad-hoc command to execute on each commit' -r
@@ -694,7 +711,7 @@ complete -c git__test__show -f  -l color -d 'Flag to force enable or disable ter
 complete -c git__test__show -f  -l hidden -d 'Include hidden commits in the results of evaluating revset expressions' 
 complete -c git__test__show -f -s v -l verbose -d 'Show the test output as well' 
 complete -c git__test__show -f -s h -l help -d 'Print help (see a summary with '"'"'-h'"'"')' 
-complete -c git__test__show -f -kra '(__fish_git_commits; __fish_git_branches)'
+complete -c git__test__show -f -kra '(__fish_git_branches; __fish_git_commits)'
 
 complete -c git__test__fix -f -s C  -d 'Change to the given directory before executing the rest of the program. (The option is called `-C` for symmetry with Git.)' -ra "(__fish_complete_directories)"
 complete -c git__test__fix -f -s x -l exec -d 'An ad-hoc command to execute on each commit' -r
@@ -719,7 +736,7 @@ complete -c git__test__fix -f -s m -l merge -d 'Attempt to resolve merge conflic
 complete -c git__test__fix -f  -l debug-dump-rebase-constraints -d 'Debugging option. Print the constraints used to create the rebase plan before executing it' 
 complete -c git__test__fix -f  -l debug-dump-rebase-plan -d 'Debugging option. Print the rebase plan that will be executed before executing it' 
 complete -c git__test__fix -f -s h -l help -d 'Print help (see a summary with '"'"'-h'"'"')' 
-complete -c git__test__fix -f -kra '(__fish_git_commits; __fish_git_branches)'
+complete -c git__test__fix -f -kra '(__fish_git_branches; __fish_git_commits)'
 
 
 complete -c git__undo -f -s C  -d 'Change to the given directory before executing the rest of the program. (The option is called `-C` for symmetry with Git.)' -ra "(__fish_complete_directories)"
@@ -740,3 +757,15 @@ complete -c git__unhide -f  -l color -d 'Flag to force enable or disable termina
 complete -c git__unhide -f -s r -l recursive -d 'Also recursively unhide all children commits of the provided commits' 
 complete -c git__unhide -f -s h -l help -d 'Print help (see a summary with '"'"'-h'"'"')' 
 complete -c git__unhide -f -kra '(__fish_git_commits)'
+
+complete -c git__sl -f -s C  -d 'Change to the given directory before executing the rest of the program. (The option is called `-C` for symmetry with Git.)' -ra "(__fish_complete_directories)"
+complete -c git__sl -f  -l event-id -d 'The point in time at which to show the smartlog. If not provided, renders the smartlog as of the current time. If negative, is treated as an offset from the current event' -r
+complete -c git__sl -f  -l color -d 'Flag to force enable or disable terminal colors' -r -a 'auto'"'"'	Automatically determine whether to display colors from the terminal and environment variables. This is the default behavior'"'"'
+''always'"'"'	Always display terminal colors'"'"'
+''never'"'"'	Never display terminal colors'"'"'
+'
+complete -c git__sl -f  -l reverse -d 'Print the smartlog in the opposite of the usual order, with the latest commits first' 
+complete -c git__sl -f  -l exact -d 'Don'"'"'t automatically add HEAD and the main branch to the list of commits to present. They will still be added if included in the revset' 
+complete -c git__sl -f  -l hidden -d 'Include hidden commits in the results of evaluating revset expressions' 
+complete -c git__sl -f -s h -l help -d 'Print help (see a summary with '"'"'-h'"'"')' 
+complete -c git__sl -f -kra '(__fish_git_branches; __fish_git_commits)'
