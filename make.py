@@ -3,21 +3,26 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 import re
 import sys
 import subprocess
 import textwrap
+import logging
 import shlex
 from shlex import quote
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pprint import pprint
 from collections import defaultdict
+
+log = logging.getLogger(__name__)
 
 @dataclass
 class DashOptions:
   shorts: list[str]
   longs: list[str]
   args: list[str]
+  choices: list[tuple[str, str]]
   desc: str
 
 @dataclass
@@ -41,12 +46,23 @@ def do_dash_option(s: str):
       break
   args = head[len(options):]
 
-  desc = textwrap.dedent('\n'.join(lines[1:])).split('\n\n')[0].strip()
+  rest = textwrap.dedent('\n'.join(lines[1:]))
+  desc = rest.split('\n\n')[0].strip()
 
   shorts = [x for x in options if x.startswith('-') and not x.startswith('--')]
   longs = [x for x in options if x.startswith('--')]
 
-  return DashOptions(shorts, longs, args, desc)
+  options = []
+  if '\nPossible values:\n' in rest:
+    options_split = ('\n' + rest.split('\nPossible values:\n', 1)[-1].strip()).split('\n- ')
+    # XXX: assumes fixed argument choices have no spaces
+    for t in options_split:
+      if not t: continue
+      opt, opt_desc = t.replace('- ', '', 1).split(maxsplit=1)
+      if opt.endswith(':'): opt = opt[:-1]
+      options.append((opt, opt_desc))
+
+  return DashOptions(shorts, longs, args, options, desc)
 
 
 def do_arg(s: str):
@@ -106,12 +122,21 @@ def explore(cmd: list[str]):
 
   return Subcommand(cmd[-1], '', dashes, subs, args)
 
-def make_arg(arg: str):
-  print(arg, file=sys.stderr)
+reported = set()
+def make_arg(arg: str, arg_suggestions: dict[str, str]):
+  if arg not in arg_suggestions and arg not in reported:
+    log.warning(f'unknown arg string placeholder {arg}')
+    reported.add(arg)
+
+  if arg in arg_suggestions:
+    suggestion = arg_suggestions[arg]
+  else:
+    suggestion = '-a ' + quote(quote(arg))
+
   if arg.startswith('['):
-    return f'-a {quote(quote(arg))}'
+    return suggestion
   elif arg.startswith('<'):
-    return f'-ra {quote(quote(arg))}'
+    return suggestion
   assert False, 'unhandled arg prefix ' + repr(arg)
 
 def suggest(suggestion: str, desc: str | None = None):
@@ -120,7 +145,11 @@ def suggest(suggestion: str, desc: str | None = None):
     s += quote('\t'+desc)
   return quote(f'{s}\n')
 
-def make_fish_completion(data: Subcommand, prefix: str):
+def suggest_list(l: Iterable[tuple[str,str]]):
+  return '-a ' + ''.join(suggest(x, y) for x, y in l)
+
+def make_fish_completion(data: Subcommand, prefix: str, arg_suggestions: dict[str, str] | None = None):
+  arg_suggestions = arg_suggestions or {}
   join = shlex.join
   cmd = prefix + data.cmd
   for dash in data.dashes:
@@ -128,23 +157,60 @@ def make_fish_completion(data: Subcommand, prefix: str):
     longs = ''.join(join(['-l', a.lstrip('-')]) for a in dash.longs)
     desc = quote(dash.desc)
     assert len(dash.args) <= 1
-    args = make_arg(dash.args[0]) if dash.args else ''
+    if dash.choices:
+      args = '-r ' + suggest_list(dash.choices)
+    else:
+      args = make_arg(dash.args[0], arg_suggestions) if dash.args else ''
 
     print(f'complete -c {cmd} -f {shorts} {longs} -d {desc} {args}')
 
   if data.subs:
     allsubs = quote(join([x.cmd for x in data.subs]))
-    print(f'complete -c {cmd} -f --condition "not __fish_seen_subcommand_from "{allsubs} -a {''.join(suggest(x.cmd, x.desc) for x in data.subs)}')
+    print(f'complete -c {cmd} -f --condition "not __fish_seen_subcommand_from "{allsubs} {suggest_list((x.cmd, x.desc) for x in data.subs)}')
     for sub in data.subs:
       print(f'''complete -c {cmd} -f --condition "__fish_seen_subcommand_from {sub.cmd}" -a '(_myfish_complete_subcommand --fcs-set-argv0="{cmd}__{sub.cmd}")' ''')
 
   for sub in data.subs:
     print('')
-    make_fish_completion(sub, cmd + '__')
+    make_fish_completion(sub, cmd + '__', arg_suggestions)
 
   # print(f'complete -c {cmd} -f -a {quote('(_myfish_complete_subcommand --fcs-set-argv0="git checkout")')}')
 
+def branchless_arg_map():
+  return {
+    '<WORKING_DIRECTORY>': '-ra "(__fish_complete_directories)"',
+# '<BASE>'
+# '<OUTPUT>'
+    '<MAIN_BRANCH_NAME>': "-r -ka '(__fish_git_branches)'",
+    '<SOURCE>': "-xa '(__fish_git_commits)'",
+    '<EXACT>': "-xa '(__fish_git_commits)'",
+      '<DEST>': "-xa '(__fish_git_commits)'",
+    '<MESSAGES>': '-r',
+# '<CREATE>'
+# '<COMMIT_TO_FIXUP>'
+# '<EVENT_ID>'
+# '<FORGE_KIND>'
+# '<MESSAGE>'
+# '<NUM_JOBS>'
+# '<EXECUTION_STRATEGY>'
+# '<BRANCH_NAME>'
+# '<EXEC>'
+# '<COMMAND>'
+# '<STRATEGY>'
+# '<SEARCH>'
+# '<JOBS>'
+# '<GIT_EXECUTABLE>'
+#
+
+  }
+
 if __name__ == '__main__':
-  cmds = explore(['git-branchless'])
+  root = explore(['git-branchless'])
   # pprint(cmds, width=140)
-  make_fish_completion(cmds, '')
+  make_fish_completion(root, '', branchless_arg_map())
+
+  # for a number of git-branchless, these are aliased to the top-level git. duplicate the thingies
+  aliased = ['amend', 'hide', 'move', 'next', 'prev', 'query', 'record', 'restack', 'reword', 'sl', 'smartlog', 'submit', 'sw', 'sync', 'test', 'undo', 'unhide']
+  gitroot = replace(root, cmd='git', subs=[x for x in root.subs if x.cmd in aliased])
+  make_fish_completion(gitroot, '', branchless_arg_map())
+
