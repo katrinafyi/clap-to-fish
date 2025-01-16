@@ -130,7 +130,7 @@ def get_suggestion(data: DashOption, arg_suggestions: dict):
   if arg is None:
     return ''
   if arg not in arg_suggestions and arg not in reported:
-    log.warning(f'unknown arg string placeholder {arg}')
+    log.warning(f'unknown arg string placeholder {arg!r}')
     reported.add(arg)
 
   if arg in arg_suggestions:
@@ -177,7 +177,9 @@ def make_fish_completion(data: Subcommand, prefix: str, arg_suggestions: dict | 
     print('')
     make_fish_completion(sub, cmd + '__', arg_suggestions)
 
-  # print(f'complete -c {cmd} -f -a {quote('(_myfish_complete_subcommand --fcs-set-argv0="git checkout")')}')
+  if data.args:
+    pos_args = ' '.join(x[0] for x in data.args)
+    print(f'complete -c {cmd} -f {get_suggestion(DashOption([], [], pos_args, [], data.desc), arg_suggestions)}')
 
 def branchless_arg_map():
   def base_arg_for_difftool_or_move(x: DashOption):
@@ -186,6 +188,34 @@ def branchless_arg_map():
     elif 'commit inside a subtree' in x.desc:
       return "-r -ka '(__fish_git_commits)'"
     assert False, f'unexpected dashoption {x}'
+
+  # complete -f -c git -n '__fish_git_using_command checkout' -n 'not contains -- -- (commandline -opc)' -ka '(__fish_git_recent_commits --all)'
+  # complete -f -c git -n '__fish_git_using_command checkout' -n 'not contains -- -- (commandline -opc)' -ka '(__fish_git_tags)' -d Tag
+  # complete -f -c git -n '__fish_git_using_command checkout' -n 'not contains -- -- (commandline -opc)' -ka '(__fish_git_heads)' -d Head
+  # complete -f -c git -n '__fish_git_using_command checkout' -n 'not contains -- -- (commandline -opc)' -ka '(__fish_git_unique_remote_branches)' -d 'Unique Remote Branch'
+  # complete -f -c git -n '__fish_git_using_command checkout' -n 'not contains -- -- (commandline -opc)' -ka '(__fish_git_branches)'
+
+
+  # add_description = lambda prefix, cmd: shlex.join([
+  #   'bash', '-c', f'shift; for x in "$@"; do printf "%s\t{prefix}\n" "$x"; done'
+  # ]) + " -- " + cmd
+
+  # XXX: printf still adds an element when the argument list is empty :(
+  # add_description = lambda prefix, cmd: f'printf "%s\t{prefix}\n" ({cmd})'
+
+  # BUG: suggestion description not used...
+  add_description = lambda desc, cmd: cmd
+
+  checkout_suggestion_commands = [
+    "__fish_git_recent_commits --all",
+    add_description('Tag', '__fish_git_tags'),
+    add_description('Head', '__fish_git_heads'),
+    add_description('Unique Remote Branches', '__fish_git_unique_remote_branches'),
+    "__fish_git_branches",
+  ]
+  checkout_suggestion_commands.reverse()
+  checkout_suggestion = '(' + '; '.join(checkout_suggestion_commands) + ')'
+  # checkout_suggestion = """-kra '(_myfish_complete_subcommand --fcs-set-argv0="git checkout")'""",
 
   return {
     '<WORKING_DIRECTORY>': '-ra "(__fish_complete_directories)"',
@@ -196,6 +226,7 @@ def branchless_arg_map():
     '<SOURCE>': "-kra '(__fish_git_commits; __fish_git_branches)'",
     '<EXACT>': "-kra '(__fish_git_commits; __fish_git_branches)'",
     '<DEST>': "-kra '(__fish_git_commits; __fish_git_branches)'",
+    '[TARGET]': '-kra ' + quote(checkout_suggestion),
     '<MESSAGES>': '-r',
     '<CREATE>': '-r',
     '<COMMIT_TO_FIXUP>': "-ka '(__fish_git_recent_commits)'",
@@ -205,7 +236,14 @@ def branchless_arg_map():
     '<EXEC>': '-r',
     '<COMMAND>': '-r',
     '<JOBS>': '-r',
+    '[NUM_COMMITS]': '-r',
     '<GIT_EXECUTABLE>': '-xa "(__fish_complete_path)"',
+    '<PATH>': '-xa "(__fish_complete_path)"',
+
+    '<LEFT> <RIGHT>': '-xa "(__fish_complete_path)"',
+    '[REVSETS]...': "-kra '(__fish_git_commits)'",
+    '<REVSET>': "-r", # XXX: used for 'query', where advanced expressions are expected
+    '[REVSET]': "-kra '(__fish_git_commits; __fish_git_branches)'",
   }
 
 if __name__ == '__main__':
